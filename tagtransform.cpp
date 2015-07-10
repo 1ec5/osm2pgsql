@@ -195,6 +195,16 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
                 out_tags.push_dedupe(tag_t("rwn_ref", *relref));
             } else if (networknr == 22) {
                 out_tags.push_dedupe(tag_t("nwn_ref", *relref));
+            } else {
+                std::string netwref = *relref;
+                if (netw != NULL) {
+                    netwref = *netw + "\t" + netwref;
+                }
+                tag *old_route_ref = out_tags.find("network_ref");
+                if (old_route_ref != NULL) {
+                    netwref = old_route_ref->value + ";" + netwref;
+                }
+                out_tags.push_dedupe(tag_t("network_ref", netwref));
             }
         }
     } else if (is_boundary) {
