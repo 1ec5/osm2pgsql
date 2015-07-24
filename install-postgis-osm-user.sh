@@ -32,6 +32,7 @@ if [ -n "$GRANT_USER" ] ; then
             echo "GRANT ALL on planet_osm_point TO \"$user\";"
             echo "GRANT ALL on planet_osm_rels TO \"$user\";"
             echo "GRANT ALL on planet_osm_roads TO \"$user\";"
+            echo "GRANT ALL on planet_osm_roadrefs TO \"$user\";"
             echo "GRANT ALL on planet_osm_ways TO \"$user\";"
             echo "GRANT ALL on planet_osm_polygon TO \"$user\";"
 	    )| sudo -u postgres psql -Upostgres $DBNAME

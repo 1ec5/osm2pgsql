@@ -182,7 +182,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
         }
 
         const std::string *relref = rel_tags.get("ref");
-        if (relref != NULL ) {
+        if (relref != nullptr ) {
             if (networknr == 10) {
                 out_tags.push_dedupe(tag_t("lcn_ref", *relref));
             } else if (networknr == 11) {
@@ -197,11 +197,11 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
                 out_tags.push_dedupe(tag_t("nwn_ref", *relref));
             } else {
                 std::string netwref = *relref;
-                if (netw != NULL) {
+                if (netw != nullptr) {
                     netwref = *netw + "\t" + netwref;
                 }
-                tag *old_route_ref = out_tags.find("network_ref");
-                if (old_route_ref != NULL) {
+                tag_t *old_route_ref = out_tags.find("network_ref");
+                if (old_route_ref != nullptr) {
                     netwref = old_route_ref->value + ";" + netwref;
                 }
                 out_tags.push_dedupe(tag_t("network_ref", netwref));

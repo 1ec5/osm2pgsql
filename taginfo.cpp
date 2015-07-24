@@ -193,6 +193,13 @@ int read_style_file( const std::string &filename, export_list *exlist )
         kept = true;
     }
 
+    //keep this tag info if it applies to ways
+    if( strstr( osmtype, "relation" ) )
+    {
+        exlist->add(OSMTYPE_RELATION, temp);
+        kept = true;
+    }
+
     //do we really want to completely quit on an unusable line?
     if( !kept )
     {

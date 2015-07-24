@@ -20,7 +20,7 @@
 class output_pgsql_t : public output_t {
 public:
     enum table_id {
-        t_point = 0, t_line, t_poly, t_roads, t_MAX
+        t_point = 0, t_line, t_poly, t_roads, t_roadrefs, t_MAX
     };
 
     output_pgsql_t(const middle_query_t* mid_, const options_t &options_);

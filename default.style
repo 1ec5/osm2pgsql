@@ -152,7 +152,8 @@ node,way   wood         text         linear
 node,way   z_order      int4         linear # This is calculated during import
 way        way_area     real         linear # This is calculated during import
 
-way        network_ref  text         linear
+relation   network      text         linear
+relation   ref          text         linear
 
 # Area tags
 # We don't make columns for these tags, but objects with them are areas.

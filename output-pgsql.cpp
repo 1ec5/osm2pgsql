@@ -485,6 +485,8 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const memberlist_t &membe
   multitaglist_t xtags(xid.size(), taglist_t());
   rolelist_t xrole(xid.size(), 0);
 
+  tag_t *relnetw = outtags.find("network");
+  tag_t *relref = outtags.find("ref");
   for (size_t i = 0; i < xid.size(); i++) {
       for (size_t j = i; j < members.size(); j++) {
           if (members[j].id == xid[i]) {
@@ -501,6 +503,14 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const memberlist_t &membe
               xrole[i] = &members[j].role;
               break;
           }
+      }
+      
+      tag_t *wayref = xtags[i].find("ref");
+      if (relnetw != nullptr && relref != nullptr && wayref != nullptr) {
+          taglist_t reltags;
+          reltags.push_dedupe(*relnetw);
+          reltags.push_dedupe(*relref);
+          m_tables[t_roadrefs]->write_wkt(xid[i], reltags, nullptr);
       }
   }
 
@@ -683,7 +693,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
     for (int i=0; i<NUM_TABLES; i++) {
 
         //figure out the columns this table needs
-        columns_t columns = m_export_list->normal_columns((i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY);
+        columns_t columns = m_export_list->normal_columns((i == t_roadrefs)?OSMTYPE_RELATION:((i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY));
 
         //figure out what name we are using for this and what type
         std::string name = m_options.prefix;
@@ -705,6 +715,10 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
             case t_roads:
                 name += "_roads";
                 type = "LINESTRING";
+                break;
+            case t_roadrefs:
+                name += "_roadrefs";
+                type = "META";
                 break;
             default:
                 //TODO: error message about coding error

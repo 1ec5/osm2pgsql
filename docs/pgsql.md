@@ -5,11 +5,12 @@ with Mapnik, but is also useful for [analysis](docs/analysis.md) and
 [exporting](docs/exporting.md) to other formats.
 
 ## Database Layout ##
-It connects to a PostgreSQL database and stores the data in four tables
+It connects to a PostgreSQL database and stores the data in five tables
 
 * ``planet_osm_point``
 * ``planet_osm_line``
 * ``planet_osm_roads``
+* ``planet_osm_roadrefs``
 * ``planet_osm_polygon``
 
 planet_osm_roads contains the data from other tables, but has tags selected

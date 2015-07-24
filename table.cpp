@@ -46,8 +46,10 @@ table_t::table_t(const table_t& other):
     // this would be premature.
     if (other.sql_conn) {
         connect();
-        //let postgres cache this query as it will presumably happen a lot
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %1% WHERE osm_id = $1") % name).str());
+        if (type != "META") {
+            //let postgres cache this query as it will presumably happen a lot
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %1% WHERE osm_id = $1") % name).str());
+        }
         //start the copy
         begin();
         pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
@@ -148,16 +150,18 @@ void table_t::start()
         //create the table
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
 
-        //add some constraints
-        pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT AddGeometryColumn('%1%', 'way', %2%, '%3%', 2 )") % name % srid % type).str());
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ALTER COLUMN way SET NOT NULL") % name).str());
-
-        //slim mode needs this to be able to apply diffs
-        if (slim && !drop_temp) {
-            sql = (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id)") % name).str();
-            if (table_space_index)
-                sql += " TABLESPACE " + table_space_index.get();
-            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
+        if (type != "META") {
+            //add some constraints
+            pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT AddGeometryColumn('%1%', 'way', %2%, '%3%', 2 )") % name % srid % type).str());
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ALTER COLUMN way SET NOT NULL") % name).str());
+            
+            //slim mode needs this to be able to apply diffs
+            if (slim && !drop_temp) {
+                sql = (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id)") % name).str();
+                if (table_space_index)
+                    sql += " TABLESPACE " + table_space_index.get();
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
+            }
         }
 
     }//appending
@@ -183,8 +187,10 @@ void table_t::start()
         //TODO: change the type of the geometry column if needed - this can only change to a more permissive type
     }
 
-    //let postgres cache this query as it will presumably happen a lot
-    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %1% WHERE osm_id = $1") % name).str());
+    if (type != "META") {
+        //let postgres cache this query as it will presumably happen a lot
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %1% WHERE osm_id = $1") % name).str());
+    }
 
     //generate column list for COPY
     string cols = "osm_id,";
@@ -196,8 +202,11 @@ void table_t::start()
     for(hstores_t::const_iterator hcolumn = hstore_columns.begin(); hcolumn != hstore_columns.end(); ++hcolumn)
         cols += (fmt("\"%1%\",") % (*hcolumn)).str();
 
-    //add tags column and geom column
-    if (hstore_mode != HSTORE_NONE)
+    //remove the last ", " from the end
+    if (type == "META")
+        cols = cols.substr(0, cols.length() - 1);
+    //or add tags column and geom column
+    else if (hstore_mode != HSTORE_NONE)
         cols += "tags,way";
     //or just the geom column
     else
@@ -212,7 +221,7 @@ void table_t::start()
 void table_t::stop()
 {
     stop_copy();
-    if (!append)
+    if (!append && type != "META")
     {
         time_t start, end;
         time(&start);
@@ -325,15 +334,20 @@ void table_t::write_wkt(const osmid_t id, const taglist_t &tags, const char *wkt
     write_hstore_columns(tags, buffer);
 
     //get the key value pairs for the tags column
-    if (hstore_mode != HSTORE_NONE)
+    if (hstore_mode != HSTORE_NONE && type != "META")
         write_tags_column(tags, buffer, used);
 
-    //give the wkt an srid
-    buffer.append("SRID=");
-    buffer.append(srid);
-    buffer.push_back(';');
-    //add the wkt
-    buffer.append(wkt);
+    if (type == "META") {
+        // remove an extraneous column delimiter from the end
+        buffer.pop_back();
+    } else {
+        //give the wkt an srid
+        buffer.append("SRID=");
+        buffer.append(srid);
+        buffer.push_back(';');
+        //add the wkt
+        buffer.append(wkt);
+    }
     //we need \n because we are copying from stdin
     buffer.push_back('\n');
 
